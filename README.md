@@ -2,7 +2,7 @@
 
 **An Autonomous AI Agent for Your Housing Search**
 
-[cite_start]This project was built for the **AI University Games Hackathon (November 8th-9th, 2025)**, powered by Prosus and AISO[cite: 3]. [cite_start]The challenge was to create an autonomous, agentic AI lifestyle assistant that solves a real-world problem in daily life[cite: 7, 8].
+This project was built for the **AI University Games Hackathon (November 8th-9th, 2025)**, powered by Prosus and AISO. The challenge was to create an autonomous, agentic AI lifestyle assistant that solves a real-world problem in daily life.
 
 ## 🦒 The Problem
 
