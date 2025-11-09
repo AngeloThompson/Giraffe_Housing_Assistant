@@ -17,7 +17,7 @@ This friction means you can easily miss out on the perfect home.
 
 ## 💡 The Solution
 
-The **Giraffe Housing Assistant** is an autonomous AI agent that takes over this entire end-to-end process. [cite_start]It acts as a true agent "on your behalf", not just a simple chatbot, fulfilling the hackathon's goal of building agents that can complete end-to-end tasks autonomously[cite: 12, 14].
+The **Giraffe Housing Assistant** is an autonomous AI agent that takes over this entire end-to-end process. It acts as a true agent "on your behalf", not just a simple chatbot, fulfilling the hackathon's goal of building agents that can complete end-to-end tasks autonomously.
 
 The agent manages the full lifecycle of your housing search: from finding listings and applying to them, to parsing email replies and booking viewings directly into your calendar.
 
@@ -34,14 +34,14 @@ The agent manages the full lifecycle of your housing search: from finding listin
 
 The assistant is built as a series of interconnected [n8n](https://n8n.io/) workflows that function as a cohesive agent.
 
-1.  **Onboarding (`[DO_NOT_TOUCH]user_preferences_telegram.json`)**
+1.  **Onboarding (`user_preferences_telegram.json`)**
     * A **Telegram Trigger** receives a message.
     * A **Gemini LLM** classifies the user's intent.
     * If the intent is to find housing, the bot asks for preferences (city, budget, etc.).
     * A **GPT-5 LLM** parses the user's free-text response into structured JSON.
     * This JSON is saved to a **Data Table** (`user_data`).
 
-2.  **Scraping & Applying (`[DO_NOT_TOUCH]application_sender.json`)**
+2.  **Scraping & Applying (`application_sender.json`)**
     * A **Schedule Trigger** (e.g., every 10 minutes) fetches all users from the `user_data` table.
     * For each user, a **GPT-5 LLM** generates a precise Pararius.nl search URL from their preferences.
     * An **HTTP Request** scrapes the search results page.
@@ -57,7 +57,7 @@ The assistant is built as a series of interconnected [n8n](https://n8n.io/) work
     * If a viewing is confirmed, a **Code Node** parses the date/time.
     * A **Google Calendar** node creates a new event for the viewing.
 
-4.  **Monitoring (`[DO_NOT_TOUCH]web_dashboard.json`)**
+4.  **Monitoring (`web_dashboard.json`)**
     * A **Webhook** provides a unique URL for the user.
     * When accessed, it queries the `user_data`, `housing_application`, and `announcments` tables.
     * A **Code Node** merges this data and calculates metrics (total applications, refusal rate, etc.).
@@ -72,4 +72,5 @@ This project successfully demonstrates the core "end-to-end" autonomous loop. Th
 * **Full Household Management:** Evolve the agent beyond just *finding* a house.
     * **Utilities Setup:** Once a lease is signed, the agent could automatically research and find the best (cheapest/greenest) utility providers for that address (e.g., for gas, electricity, water).
     * **Internet Providers:** Compare internet provider plans (speed, price) available at the new address and present the top 3 options.
+    * **Proactive Bill Optimization:** Grant the agent access to your email to find existing utility and internet bills. The agent will then proactively search online for better offers and present them to you for easy switching.
     * **Move-in Coordination:** Help schedule moving companies or appointments for key handovers.
