@@ -1,6 +1,6 @@
 # Giraffe Housing Assistant
 
-[Click here to talk to the Giraffe Housing Assistant](https://t.me/Giraffe_Housing_Assistant_bot) 
+[Click here to talk to the demo Giraffe Housing Assistant](https://t.me/Giraffe_Housing_Assistant_bot) 
 
 **An Autonomous AI Agent for Your Housing Search**
 
