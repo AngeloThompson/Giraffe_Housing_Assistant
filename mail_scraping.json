@@ -1,0 +1,205 @@
+{
+  "name": "mail_scraping",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 1,
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -224,
+        -96
+      ],
+      "id": "984e2ac9-671d-4c2f-a7d5-8e404b254f0e",
+      "name": "Get many messages",
+      "webhookId": "ae083398-a15e-49eb-aa77-eabb7b94116d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "wCxUxiNpnr1KEikV",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.0-flash-lite",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.0-flash-lite"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a strict JSON classifier for housing emails.\nReturn ONLY valid JSON (no markdown, code fences, or prose).\n\nTask:\nFor each email below, output one object with:\n{\n  \"id\": string,\n  \"viewing\": \"yes\" | \"pending_more_information\" | \"no\",\n  \"date\": string | null,\n  \"time\": string | null,\n  \"reason\": string | null\n}\n\nClassification rules:\n- \"yes\": clearly confirms or schedules a viewing (mentions date/time or \"viewing confirmed\", \"appointment confirmed\", \"bezichtiging bevestigd\", etc.)\n- \"pending_more_information\": asks for extra docs/info before confirming (\"send payslip\", \"we need more info\", etc.)\n- \"no\": anything else (Pararius contact requests, newsletters, auto replies, \"application received\"), with short reason.\nIf unsure, choose \"no\" + reason = \"unclear\".\n\nInput:\n{{ JSON.stringify(\n  ($json.data || $input.all().map(i => i.json)).map(d => ({\n    id: d.id,\n    from: d.From ?? d.payload?.headers?.find(h => h.name === 'From')?.value ?? null,\n    subject: d.Subject ?? d.payload?.headers?.find(h => h.name === 'Subject')?.value ?? null,\n    snippet: d.snippet ?? null\n  }))\n) }}\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        -96
+      ],
+      "id": "bef7c61f-b4da-461f-8340-a671f2d213d8",
+      "name": "Message a model1",
+      "retryOnFail": true,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "g3K0wfGa2MoQLpsz",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Accept both plain text and wrapped structures\nlet raw = $json.text ?? $json.output ?? $json; \n\n// If the model still included ```json fences, strip them safely\nif (typeof raw === 'string') {\n  raw = raw\n    .replace(/^\\s*```json\\s*/i, '')\n    .replace(/^\\s*```\\s*/i, '')\n    .replace(/\\s*```\\s*$/i, '')\n    .trim();\n}\n\nlet arr;\nif (typeof raw === 'string') {\n  arr = JSON.parse(raw);\n} else if (Array.isArray(raw)) {\n  arr = raw;\n} else if (raw.content?.parts?.[0]?.text) {\n  // For \"content.parts[0].text\" style outputs\n  const t = raw.content.parts[0].text\n    .replace(/^\\s*```json\\s*/i, '')\n    .replace(/\\s*```\\s*$/i, '')\n    .trim();\n  arr = JSON.parse(t);\n} else {\n  throw new Error('Could not locate JSON array in model output.');\n}\n\n// Return each result as its own item\nreturn arr.map(x => ({ json: x }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        -96
+      ],
+      "id": "d7ea1678-2a37-4bfc-aef8-335764e5b5f0",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "giraffehousingassistant@gmail.com",
+          "mode": "list",
+          "cachedResultName": "giraffehousingassistant@gmail.com"
+        },
+        "start": "={{ $json.startDateTime }}",
+        "end": "={{ $json.endDateTime }}",
+        "additionalFields": {
+          "description": "=Viewing ",
+          "summary": "This event is created because you have a viewing in address"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        656,
+        -96
+      ],
+      "id": "0379fcbe-6410-4598-9fd1-426cfa830b9a",
+      "name": "Create an event",
+      "retryOnFail": true,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "7F2H5lPtRk5vA8Qn",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Robust parser for strings like \"3rd of December 2025\" + \"10 am\" (or \"10:30\", \"15:00\")\nfunction toIsoFrom(dateStr, timeStr) {\n  // 1) Normalize date: remove ordinals and \"of\"\n  const cleanDate = String(dateStr)\n    .replace(/\\b(\\d{1,2})(st|nd|rd|th)\\b/gi, \"$1\")\n    .replace(/\\bof\\b/gi, \" \")\n    .replace(/\\s+/g, \" \")\n    .trim();\n\n  // 2) Parse day, month, year\n  const months = {\n    january: 1, february: 2, march: 3, april: 4, may: 5, june: 6,\n    july: 7, august: 8, september: 9, october: 10, november: 11, december: 12\n  };\n  const m = cleanDate.match(/(\\d{1,2})\\s+([A-Za-z]+)\\s+(\\d{4})/);\n  if (!m) return null;\n\n  const day = parseInt(m[1], 10);\n  const monthName = m[2].toLowerCase();\n  const month = months[monthName];\n  const year = parseInt(m[3], 10);\n  if (!month) return null;\n\n  // 3) Parse time\n  const t = String(timeStr).trim().toLowerCase();\n  let hh = 0, mm = 0;\n  let tm = t.match(/^(\\d{1,2})(?::(\\d{2}))?\\s*(am|pm)?$/i);\n  if (!tm) {\n    tm = t.match(/^(\\d{1,2})\\.(\\d{2})\\s*(am|pm)?$/i);\n  }\n  if (!tm) return null;\n\n  hh = parseInt(tm[1], 10);\n  mm = parseInt(tm[2] ?? \"0\", 10);\n  const ampm = tm[3];\n\n  if (ampm === \"pm\" && hh < 12) hh += 12;\n  if (ampm === \"am\" && hh === 12) hh = 0;\n\n  // 4) Build proper ISO UTC times (no timezone offset)\n  const start = new Date(Date.UTC(year, month - 1, day, hh, mm, 0));\n  const end = new Date(start.getTime() + 60 * 60 * 1000); // +1 hour duration\n\n  return {\n    start: start.toISOString(),\n    end: end.toISOString(),\n  };\n}\n\n// --- Main mapping ---\nreturn $input.all().map(item => {\n  const { date, time } = item.json;\n  if (!date || !time) {\n    return { json: { ...item.json, startDateTime: null, endDateTime: null } };\n  }\n\n  const iso = toIsoFrom(date, time);\n  if (!iso) {\n    return { json: { ...item.json, startDateTime: null, endDateTime: null } };\n  }\n\n  return {\n    json: {\n      ...item.json,\n      startDateTime: iso.start,\n      endDateTime: iso.end,\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        112
+      ],
+      "id": "a9f4ef4c-3bd4-454e-ad06-78dea526abb5",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -544,
+        -96
+      ],
+      "id": "bd96f3da-8f8f-4bd5-bb64-fe0d8bda45df",
+      "name": "Schedule Trigger"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get many messages": {
+      "main": [
+        [
+          {
+            "node": "Message a model1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Create an event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d387b574-a67e-436a-b786-a4f0f0e6ebca",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "feb4948fe641076e7dcbd8c395c7dc887d3ffb358ba687397c39c2d35ecc3621"
+  },
+  "id": "BSaMJ7rcu1xtc1I0",
+  "tags": []
+}

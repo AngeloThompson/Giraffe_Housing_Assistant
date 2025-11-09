@@ -1,0 +1,717 @@
+{
+  "name": "[DO_NOT_TOUCH]application_sender",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "Z1GndFcG45co7z9G",
+          "mode": "list",
+          "cachedResultName": "user_data",
+          "cachedResultUrl": "/projects/dJmAxbI6ymidmcgS/datatables/Z1GndFcG45co7z9G"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "user_id",
+              "condition": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        -272,
+        -32
+      ],
+      "id": "bee070f1-191f-4ecd-9a33-a8a4fe0c324e",
+      "name": "Get row(s)"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -64,
+        -32
+      ],
+      "id": "6cb40c4a-8120-4899-b09a-1e68c5cbc356",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5",
+          "mode": "list",
+          "cachedResultName": "GPT-5"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a link generator.\nThe link must be coded as \"https://www.pararius.com/apartments/{location}/{min_price}-{max_price}/{rooms}-bedrooms/{furnished}\"\n\nKeep in mind:\n- location must be a dutch city, correct any mispelling and make it all lower case\n- if min_price AND max_price are null then skip the section and go on with the other filters\n- if one among min_price and max_price is null but the other not, then substitute the missing by with 0 in case it's min_price and 60000 if max_price is missing\n- if rooms is missing then skip this filter otherwise put the number at {rooms}\n- if furnished is null then skip it, if it's 1 then put \"furnished\", if it's 0 put \"upholstered\".\n\nREPLY WITH A JSON HAVING A VALUE NAMED \"link\""
+            },
+            {
+              "content": "=location: {{ $json.location }}\n\nmin_price: {{ $json.min_price }}\n\nmax_price: {{ $json.max_price }}\n\nrooms: {{ $json.rooms }}\n\nfurnished: {{ $json.furnished }}\n"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "textFormat": {
+            "textOptions": {
+              "type": "json_object",
+              "verbosity": "low"
+            }
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [
+        176,
+        -16
+      ],
+      "id": "0612873e-812b-4315-b58d-bcadfd1c0042",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "wq0ekXq91O0ZBoNZ",
+          "name": "hachathon_llm"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.output[0].content[0].text.link }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        560,
+        -16
+      ],
+      "id": "7aebbca6-e0c4-45f1-9b69-cfae1719202a",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "names",
+              "cssSelector": "li.search-list__item--listing .listing-search-item__link--title",
+              "returnArray": true
+            },
+            {
+              "key": "prices",
+              "cssSelector": "li.search-list__item--listing .listing-search-item__price",
+              "returnArray": true
+            },
+            {
+              "key": "locations",
+              "cssSelector": "li.search-list__item--listing .listing-search-item__sub-title",
+              "returnArray": true
+            },
+            {
+              "key": "square_meters",
+              "cssSelector": "li.search-list__item--listing section.listing-search-item div.listing-search-item__features ul > li:nth-child(1)",
+              "returnArray": true
+            },
+            {
+              "key": "rooms",
+              "cssSelector": "li.search-list__item--listing .illustrated-features__item--number-of-rooms",
+              "returnArray": true
+            },
+            {
+              "key": "furnished",
+              "cssSelector": "li.search-list__item--listing .illustrated-features__item--interior",
+              "returnArray": true
+            },
+            {
+              "key": "links",
+              "cssSelector": "li.search-list__item--listing h2.listing-search-item__title a.listing-search-item__link--title",
+              "returnValue": "attribute",
+              "attribute": "href",
+              "returnArray": true
+            },
+            {
+              "key": "image_urls",
+              "cssSelector": "li.search-list__item--listing img.picture__image",
+              "returnValue": "attribute",
+              "attribute": "src",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        864,
+        -32
+      ],
+      "id": "924a3c26-0f59-4928-b9a8-c1808603b2ba",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "jsCode": "// get all input items at once\nconst items = $input.all();\n\n\n// ensure the price is a number by regex\nconst cleanPrice = raw => {\n  const match = raw.match(/€\\s?([\\d.,]+)/);\n  if (!match) return null;\n  // convert to pure number — remove commas, keep decimal if any\n  const numeric = parseFloat(match[1].replace(/[.,](?=\\d{3})/g, '').replace(',', '.'));\n  return numeric;\n};\n\nconst cleanRooms = raw => {\n  const match = raw.match(/(\\d+)/);\n  return match ? parseInt(match[1], 10) : null;\n};\n\nconst cleanSquareMeters = raw => {\n  const match = raw.match(/(\\d+)/);\n  return match ? parseInt(match[1], 10) : null;\n};\n\n\n// merge all parallel arrays from every item\nconst combined = {\n  names: [],\n  prices: [],\n  locations: [],\n  square_meters: [],\n  rooms: [],\n  furnished: [],\n  links: [],\n  image_urls: [],\n};\n\n// combine them\nfor (const item of items) {\n  const d = item.json;\n  combined.names.push(...(d.names || []));\n  combined.prices.push(...(d.prices || []));\n  combined.locations.push(...(d.locations || []));\n  combined.square_meters.push(...(d.square_meters || []));\n  combined.rooms.push(...(d.rooms || []));\n  combined.furnished.push(...(d.furnished || []));\n  combined.links.push(...(d.links || []));\n  combined.image_urls.push(...(d.image_urls || []));\n}\n\n// now combine into clean listing objects\nconst listings = combined.names.map((name, i) => ({\n  name,\n  price: cleanPrice(combined.prices[i]),\n  location: combined.locations[i],\n  square_meters: cleanSquareMeters(combined.square_meters[i]),\n  rooms: cleanRooms(combined.rooms[i]),\n  furnished: combined.furnished[i],\n  link: combined.links[i],\n  image_url: combined.image_urls[i]\n}));\n\n// return each listing as its own item for flexibility\nreturn listings.map(l => ({ json: l }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        16
+      ],
+      "id": "fc546bf2-836b-4b28-8b25-d69a4ffa6da9",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1328,
+        16
+      ],
+      "id": "65abdb16-8e7a-46e2-bdcb-50b5c98fa46f",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {
+        "url": "=https://pararius.nl{{ $json.link }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1536,
+        112
+      ],
+      "id": "90f1bbf6-1ee0-4efc-a3db-405dc6fc37cc",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "description",
+              "cssSelector": ".listing-detail-description__additional"
+            },
+            {
+              "key": "transfer",
+              "cssSelector": ".page__details--transfer"
+            },
+            {
+              "key": "construction",
+              "cssSelector": "section.page__details:nth-child(4)"
+            },
+            {
+              "key": "classification",
+              "cssSelector": "section.page__details:nth-child(5)"
+            },
+            {
+              "key": "outside_space",
+              "cssSelector": "section.page__details:nth-child(6)"
+            },
+            {
+              "key": "rental_conditions",
+              "cssSelector": "section.page__details:nth-child(10)"
+            },
+            {
+              "key": "garage",
+              "cssSelector": "section.page__details:nth-child(9)"
+            },
+            {
+              "key": "contact_link",
+              "cssSelector": "section.page__sidebar > section:nth-child(1) > div:nth-child(2) > a:nth-child(1)",
+              "returnValue": "attribute",
+              "attribute": "href"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        1744,
+        112
+      ],
+      "id": "0e6f3671-5c6b-4b76-8551-a51dd54d2a06",
+      "name": "HTML1"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1520,
+        416
+      ],
+      "id": "4ac12c13-df4c-49a9-8116-65f026aca697",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "operation": "rowNotExists",
+        "dataTableId": {
+          "__rl": true,
+          "value": "mbRrmPFy5jRa0ZxH",
+          "mode": "list",
+          "cachedResultName": "housing_application",
+          "cachedResultUrl": "/projects/dJmAxbI6ymidmcgS/datatables/mbRrmPFy5jRa0ZxH"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "user_id",
+              "keyValue": "={{ $('Loop Over Items').item.json.chat_id }}"
+            },
+            {
+              "keyName": "announcment_id",
+              "keyValue": "={{ $json.contact_link }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        1728,
+        416
+      ],
+      "id": "31055db9-1c64-4dfb-be91-992891c81403",
+      "name": "If row does not exist"
+    },
+    {
+      "parameters": {
+        "sendTo": "giraffehousingassistant@gmail.com",
+        "subject": "Hello! I have applied to an announcment",
+        "emailType": "text",
+        "message": "=https://pararius.nl{{ $('Merge').item.json.link }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1968,
+        432
+      ],
+      "id": "0ee26910-da3b-4cb8-adde-aebd4b6100ba",
+      "name": "Send a message",
+      "webhookId": "5a80c32a-a47a-45dc-9e18-70642deeb41e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "wCxUxiNpnr1KEikV",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Loop Over Items').item.json.chat_id }}",
+        "text": "=Applied to  https://pararius.nl{{ $('Merge').item.json.link }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1968,
+        640
+      ],
+      "id": "b1294723-ad19-41dd-a53c-e7c7da11b2cd",
+      "name": "Send a text message",
+      "webhookId": "0d8f58d0-2da3-4f8b-9772-cdc58ba7b8f6",
+      "credentials": {
+        "telegramApi": {
+          "id": "zSk4rL1pIr75mZ7O",
+          "name": "Beshoy_telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "mbRrmPFy5jRa0ZxH",
+          "mode": "list",
+          "cachedResultName": "housing_application",
+          "cachedResultUrl": "/projects/dJmAxbI6ymidmcgS/datatables/mbRrmPFy5jRa0ZxH"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "requent_sent": true,
+            "user_id": "={{ $('Loop Over Items').item.json.chat_id }}",
+            "announcment_id": "={{ $('Merge').item.json.contact_link }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "announcment_id",
+              "displayName": "announcment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "requent_sent",
+              "displayName": "requent_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        2176,
+        432
+      ],
+      "id": "863e520e-418f-4300-9a34-38bd36d65ebb",
+      "name": "Insert row"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "e4KMsNG7ScqL3lgz",
+          "mode": "list",
+          "cachedResultName": "announcments",
+          "cachedResultUrl": "/projects/dJmAxbI6ymidmcgS/datatables/e4KMsNG7ScqL3lgz"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "announcment_id": "={{ $('Merge').item.json.contact_link }}",
+            "price": "={{ $('Merge').item.json.price }}",
+            "location": "={{ $('Merge').item.json.location }}",
+            "announcment_url": "={{ $('Merge').item.json.link }}",
+            "image_url": "={{ $('Merge').item.json.image_url }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "announcment_id",
+              "displayName": "announcment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "price",
+              "displayName": "price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "location",
+              "displayName": "location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "image_url",
+              "displayName": "image_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "announcment_url",
+              "displayName": "announcment_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        2384,
+        432
+      ],
+      "id": "cc0e0d2e-1f2a-42c9-b9f1-a23ae8654143",
+      "name": "Insert row1"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -592,
+        -112
+      ],
+      "id": "30e34552-ecd0-4624-8ed2-463f42501af5",
+      "name": "Schedule Trigger"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get row(s)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "HTML1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "If row does not exist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If row does not exist": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Insert row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert row": {
+      "main": [
+        [
+          {
+            "node": "Insert row1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert row1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "4bc85123-0ec2-4844-83a8-04527d561c93",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "feb4948fe641076e7dcbd8c395c7dc887d3ffb358ba687397c39c2d35ecc3621"
+  },
+  "id": "qtkloze6UbuDtJLP",
+  "tags": []
+}
