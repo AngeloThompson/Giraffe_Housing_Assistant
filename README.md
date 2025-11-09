@@ -1,5 +1,7 @@
 # Giraffe Housing Assistant
 
+## [Click here to talk to the Giraffe Housing Assistant](https://t.me/Giraffe_Housing_Assistant_bot)
+
 **An Autonomous AI Agent for Your Housing Search**
 
 This project was built for the **AI University Games Hackathon (November 8th-9th, 2025)**, powered by Prosus and AISO. The challenge was to create an autonomous, agentic AI lifestyle assistant that solves a real-world problem in daily life.
