@@ -1,5 +1,5 @@
 {
-  "name": "[DO_NOT_TOUCH]user_preferences_telegram",
+  "name": "user_preferences_telegram",
   "nodes": [
     {
       "parameters": {
@@ -35,7 +35,7 @@
         "messages": {
           "values": [
             {
-              "content": "I need you to filter messages. If and only if the message seems to be a request to find rental announcements then reply \"YES\" otherwise reply \"NO\"",
+              "content": "I need you to filter messages. If the message seems to be a request to find rental announcements then reply \"YES\" otherwise reply \"NO\". For example \"house\" or \"rent\" or \"I need a house\" etc. are all YES",
               "role": "model"
             },
             {
@@ -48,7 +48,7 @@
       "type": "@n8n/n8n-nodes-langchain.googleGemini",
       "typeVersion": 1,
       "position": [
-        32,
+        48,
         -80
       ],
       "id": "041ec348-c837-4d0c-aa90-2faf628f8700",
@@ -122,7 +122,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        640,
+        736,
         96
       ],
       "id": "567f9a09-85f7-4732-98d7-5074d4e70c7a",
@@ -132,7 +132,7 @@
       "parameters": {
         "operation": "sendAndWait",
         "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
-        "message": "Hello, I can find house renting announcements for you and automatically contact the landlord. \n\nBut before being able to do so, I need you to provide me with these details:\n- city\n- budget\n- minimum number of rooms\n- furnishment condition\n\nPlease click \"Respond\", then \"Visit Site\", write you preferences and send them. Don't worry, a copy of this message will be available in on the webpage. DO NOT REPLY IN TELEGRAM as this will trigger a parallel request.",
+        "message": "Hello, I can find house renting announcements for you and automatically contact the landlord. \n\nBut before being able to do so, I need you to provide me with these details:\n- city\n- budget\n- minimum number of rooms\n- furnishment condition\n\nPlease click \"Respond\", then \"Visit Site\", write you preferences and send them. Don't worry, a copy of this message will be available in on the webpage. DO NOT REPLY IN TELEGRAM as this will trigger a parallel request.\n\nOnce you completed the request on the site, please wait for the agent response. This may take a few minutes.",
         "responseType": "freeText",
         "options": {}
       },
@@ -234,6 +234,7 @@
           "cachedResultName": "user_data",
           "cachedResultUrl": "/projects/dJmAxbI6ymidmcgS/datatables/Z1GndFcG45co7z9G"
         },
+        "matchType": "allConditions",
         "filters": {
           "conditions": [
             {
@@ -246,7 +247,7 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
       "position": [
-        704,
+        992,
         -128
       ],
       "id": "da989916-162c-414d-94aa-2600542bf82d",
@@ -256,7 +257,7 @@
       "parameters": {
         "operation": "sendAndWait",
         "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
-        "message": "=You already submitted an announcement automation. Would you like to modify the previous details?\n\nLocation: {{ $json.location ?? 'not specified' }}\nMax price: {{ $json.max_price ?? 'not specified' }}\nMin price: {{ $json.min_price ?? 'not specified' }}\nRooms: {{ $json.rooms ?? 'not specified' }}\nFurnished: {{\n  $json.furnished === 1\n    ? 'furnished'\n    : $json.furnished === 0\n      ? 'unfurnished'\n      : 'not specified'\n}}\n\nIn case you'd like to proceed, please click \"Yes\", then \"Visit Site\".",
+        "message": "=You already submitted an announcement automation. Would you like to modify the previous details?\n\nLocation: {{ $json.location ?? 'not specified' }}\nMax price: {{ $json.max_price ?? 'not specified' }}\nMin price: {{ $json.min_price ?? 'not specified' }}\nRooms: {{ $json.rooms ?? 'not specified' }}\nFurnished: {{\n  $json.furnished === 1\n    ? 'furnished'\n    : $json.furnished === 0\n      ? 'unfurnished'\n      : 'not specified'\n}}\n\nIn case you'd like to proceed, please click \"Yes\", then \"Visit Site\".\n\nYou can access this dashboard to modify your data, provide us access to your calendar and email and follow the applications: https://ideologically-nonsubliminal-danyel.ngrok-free.dev/webhook/besh\\\\_dashboard?user\\\\_id={{ $('Telegram Trigger').item.json.message.from.id }}\n\n\nOnce you completed the request on the site, please wait for the agent response. This may take a few minutes.",
         "approvalOptions": {
           "values": {
             "approveLabel": "✅ Yes"
@@ -267,7 +268,7 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        1232,
+        1440,
         -112
       ],
       "id": "db25a764-c24e-4375-8fb8-42e68c6fd802",
@@ -303,8 +304,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
       "position": [
-        1008,
-        -112
+        1168,
+        -128
       ],
       "id": "12402a77-6366-440d-8e9e-de6b19d342ff",
       "name": "Get row(s)"
@@ -444,7 +445,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1440,
+        1648,
         -112
       ],
       "id": "30f121cc-0f98-44f7-bb34-79672405d54d",
@@ -454,14 +455,14 @@
       "parameters": {
         "operation": "sendAndWait",
         "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
-        "message": "Please provide me with the new details:\n- city\n- budget\n- minimum number of rooms\n- furnishment condition\n\nPlease click \"Respond\", then \"Visit Site\", write you preferences and send them. Don't worry, a copy of this message will be available on the webpage. DO NOT REPLY IN TELEGRAM as this will trigger a parallel request.",
+        "message": "Please provide me with the new details:\n- city\n- budget\n- minimum number of rooms\n- furnishment condition\n\nPlease click \"Respond\", then \"Visit Site\", write you preferences and send them. Don't worry, a copy of this message will be available on the webpage. DO NOT REPLY IN TELEGRAM as this will trigger a parallel request.\n\nOnce you completed the request on the site, please wait for the agent response. This may take a few minutes.",
         "responseType": "freeText",
         "options": {}
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        1776,
+        1984,
         -192
       ],
       "id": "ef894fd8-f8ac-4576-a8cd-b0430ce79ce7",
@@ -506,7 +507,7 @@
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 2,
       "position": [
-        1984,
+        2192,
         -192
       ],
       "id": "d923c826-c6c2-4c18-bbab-863c15315c91",
@@ -627,7 +628,7 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
       "position": [
-        2336,
+        2544,
         -192
       ],
       "id": "cb63270f-a40a-402b-b1e3-6d4019e001b9",
@@ -636,7 +637,7 @@
     {
       "parameters": {
         "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
-        "text": "=Your request have been saved with the following details: \n\nLocation: {{ $json.location ?? 'not specified' }} \nMax price: {{ $json.max_price ?? 'not specified' }} \nMin price: {{ $json.min_price ?? 'not specified' }} \nRooms: {{ $json.rooms ?? 'not specified' }} \nFurnished: {{   $json.furnished === 1     ? 'furnished'     : $json.furnished === 0       ? 'unfurnished'       : 'not specified' }}\n\nWe will start apply to houses for you and send you notifications for each request completed.\n\nYou can access this dashboard to modify your data, provide us access to your calendar and email and follow the applications: https://ideologically-nonsubliminal-danyel.ngrok-free.dev/webhook/besh\\\\_dashboard?user\\\\_id={{ $('Telegram Trigger').item.json.message.from.id }}\n\n\n",
+        "text": "=Your request have been saved with the following details: \n\nLocation: {{ $json.location ?? 'not specified' }} \nMax price: {{ $json.max_price ?? 'not specified' }} \nMin price: {{ $json.min_price ?? 'not specified' }} \nRooms: {{ $json.rooms ?? 'not specified' }} \nFurnished: {{   $json.furnished === 1     ? 'furnished'     : $json.furnished === 0       ? 'unfurnished'       : 'not specified' }}\n\nWe will start apply to houses for you and send you notifications for each request completed.",
         "additionalFields": {}
       },
       "type": "n8n-nodes-base.telegram",
@@ -664,7 +665,7 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        2560,
+        2768,
         -192
       ],
       "id": "24949b87-6ec4-41d3-a047-1bc34e070472",
@@ -679,62 +680,82 @@
     },
     {
       "parameters": {
-        "modelId": {
+        "dataTableId": {
           "__rl": true,
-          "value": "gpt-5",
+          "value": "mbRrmPFy5jRa0ZxH",
           "mode": "list",
-          "cachedResultName": "GPT-5"
+          "cachedResultName": "housing_application",
+          "cachedResultUrl": "/projects/dJmAxbI6ymidmcgS/datatables/mbRrmPFy5jRa0ZxH"
         },
-        "responses": {
-          "values": [
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "requent_sent": true,
+            "user_id": "={{ $('Telegram Trigger').item.json.message.from.id }}",
+            "announcment_id": "/contact/a3a37c9d-db79-5b7f-84a1-86aa94788e8e"
+          },
+          "matchingColumns": [],
+          "schema": [
             {
-              "role": "system",
-              "content": "You are an assistant which needs to explain people that you can help them in finding a house for rent and apply automatically. Analyze the input from the user and reply accordingly.\n\nBe really brief. Do not ask for details. Do not ask for follow up actions."
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
             },
             {
-              "content": "=User text:\n\n{{ $('Telegram Trigger').item.json.message.text }}"
+              "id": "announcment_id",
+              "displayName": "announcment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "requent_sent",
+              "displayName": "requent_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
             }
-          ]
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
         },
-        "builtInTools": {},
         "options": {}
       },
-      "type": "@n8n/n8n-nodes-langchain.openAi",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
       "position": [
-        896,
-        112
+        2992,
+        -192
       ],
-      "id": "349ec586-0260-4d6e-8a33-d3fe44c235a8",
-      "name": "Message a model4",
-      "credentials": {
-        "openAiApi": {
-          "id": "LOL7Ftk0YBKhx1Th",
-          "name": "OpenAi account new"
-        }
-      }
+      "id": "037541dc-2276-4600-bed3-a5fca0453eb1",
+      "name": "Insert row2"
     },
     {
       "parameters": {
-        "operation": "sendAndWait",
         "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
-        "message": "={{ $json.output[0].content[0].text }}\n\nIn case you'd like to proceed, please click \"Yes\", then \"Visit Site\".",
-        "approvalOptions": {
-          "values": {
-            "approveLabel": "✅ Yes"
-          }
-        },
-        "options": {}
+        "text": "Hi, I can help you in finding house rent and I can automatically get in touch with the landlord for you. If you want to proceed please reply in telegram saying \"I want to rent a house\".",
+        "additionalFields": {}
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        1264,
-        112
+        1200,
+        128
       ],
-      "id": "d05f5f4f-7d4c-49be-8819-f0bc467b5205",
-      "name": "Send message and wait for response3",
-      "webhookId": "b665674c-ff4d-4ec3-b8f7-a9a6e5aeaae0",
+      "id": "160f9669-5b15-4f92-916b-79e3ea816595",
+      "name": "Send a text message2",
+      "webhookId": "236a21cc-5a23-4aa9-b100-94efd25b3282",
       "credentials": {
         "telegramApi": {
           "id": "zSk4rL1pIr75mZ7O",
@@ -744,37 +765,88 @@
     },
     {
       "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
+        "dataTableId": {
+          "__rl": true,
+          "value": "mbRrmPFy5jRa0ZxH",
+          "mode": "list",
+          "cachedResultName": "housing_application",
+          "cachedResultUrl": "/projects/dJmAxbI6ymidmcgS/datatables/mbRrmPFy5jRa0ZxH"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "requent_sent": true,
+            "user_id": "={{ $('Telegram Trigger').item.json.message.from.id }}",
+            "announcment_id": "/contact/a3a37c9d-db79-5b7f-84a1-86aa94788e8e"
           },
-          "conditions": [
+          "matchingColumns": [],
+          "schema": [
             {
-              "id": "87675b12-cbf4-47da-af00-e4530b8b8d2c",
-              "leftValue": "={{ $json.data.approved }}",
-              "rightValue": "false",
-              "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
-              }
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "announcment_id",
+              "displayName": "announcment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "requent_sent",
+              "displayName": "requent_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
             }
           ],
-          "combinator": "and"
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
         },
         "options": {}
       },
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
       "position": [
-        1488,
-        112
+        2000,
+        -384
       ],
-      "id": "f61af81f-48c2-4374-a26f-2115d28fad61",
-      "name": "If3"
+      "id": "ad371e2e-1268-4804-8c18-cac5267fc0bb",
+      "name": "Insert row1"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=You can access this dashboard to modify your data, provide us access to your calendar and email and follow the applications: https://ideologically-nonsubliminal-danyel.ngrok-free.dev/webhook/besh\\\\_dashboard?user\\\\_id={{ $('Telegram Trigger').item.json.message.from.id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        672,
+        -112
+      ],
+      "id": "6a29950d-86f1-4045-81dc-cd6c42bbeea4",
+      "name": "Send a text message3",
+      "webhookId": "01ec2d68-8821-4060-8483-658228014d41",
+      "credentials": {
+        "telegramApi": {
+          "id": "zSk4rL1pIr75mZ7O",
+          "name": "Beshoy_telegram"
+        }
+      }
     }
   ],
   "pinData": {},
@@ -810,7 +882,7 @@
             "index": 0
           },
           {
-            "node": "If row exists",
+            "node": "Send a text message3",
             "type": "main",
             "index": 0
           }
@@ -949,45 +1021,29 @@
       "main": [
         [
           {
-            "node": "Message a model4",
+            "node": "Send a text message2",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Message a model4": {
+    "Send a text message": {
       "main": [
         [
           {
-            "node": "Send message and wait for response3",
+            "node": "Insert row1",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Send message and wait for response3": {
+    "Send a text message1": {
       "main": [
         [
           {
-            "node": "If3",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "If3": {
-      "main": [
-        [
-          {
-            "node": "If row exists",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "If row does not exist",
+            "node": "Insert row2",
             "type": "main",
             "index": 0
           }
@@ -999,7 +1055,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "003c4d57-e416-4b50-b7e2-a4e124ad93bb",
+  "versionId": "dc323c4b-cad7-492d-886e-6fc565839e13",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "feb4948fe641076e7dcbd8c395c7dc887d3ffb358ba687397c39c2d35ecc3621"
